@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "ui",
+    "ai_client"
+]
