@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 ai_client = { path = "../ai_client" }
+iced = "0.10.0"
+serde = { version = "1.0.188", features = ["derive"] }
+serde_yaml = "0.9.25"
