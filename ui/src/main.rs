@@ -1,6 +1,5 @@
 mod config;
 mod error;
-mod screen;
 
 use ai_client;
 use config::Config;
