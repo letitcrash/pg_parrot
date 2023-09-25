@@ -43,7 +43,7 @@ impl Application for PgParrot {
     fn title(&self) -> String {
         let subtitle = match self {
             PgParrot::Loading => "Loading",
-            PgParrot::Loaded { config, .. } => &config.name,
+            PgParrot::Loaded { config, .. } => &config.openai.token,
             PgParrot::Errored { .. } => "Whoops!",
         };
 
