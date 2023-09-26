@@ -1,9 +1,11 @@
 mod config;
 mod error;
+mod dashboard;
 
 use ai_client;
 use config::Config;
 use error::Error;
+use dashboard::Dashboard;
 use iced::executor;
 use iced::widget::{self, button, column, container, row, text};
 use iced::window;
@@ -16,7 +18,7 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 enum PgParrot {
     Loading,
-    Loaded { config: Config },
+    Loaded { dashboard: Dashboard },
     Errored { e: Error },
 }
 
@@ -42,9 +44,9 @@ impl Application for PgParrot {
 
     fn title(&self) -> String {
         let subtitle = match self {
-            PgParrot::Loading => "Loading",
-            PgParrot::Loaded { config, .. } => &config.openai.token,
+            PgParrot::Loaded { dashboard } => dashboard.title(),
             PgParrot::Errored { .. } => "Whoops!",
+            _ => "Loading",
         };
 
         format!("{subtitle} - PgParrot")
@@ -55,7 +57,7 @@ impl Application for PgParrot {
             Message::Exit => window::close(),
             Message::Retry => Command::perform(Config::new(), Message::Config),
             Message::Config(Ok(config)) => {
-                *self = PgParrot::Loaded { config };
+                *self = PgParrot::Loaded { dashboard: Dashboard::new(config) };
                 Command::none()
             }
             Message::Config(Err(e)) => {
@@ -68,17 +70,9 @@ impl Application for PgParrot {
 
     fn view(&self) -> Element<Message> {
         let content = match self {
-            PgParrot::Loading => column![text("Loading...").size(18),].width(Length::Shrink),
+            PgParrot::Loading => column![text("Loading...").size(18),].width(Length::Shrink).into(),
             PgParrot::Errored { e } => e.view(),
-            PgParrot::Loaded { config } => column![
-                // config.view(),
-                text("Loaded!").size(18),
-                button("Exit!").on_press(Message::Exit)
-            ]
-            .max_width(500)
-            .spacing(20)
-            .align_items(Alignment::Center),
-                
+            PgParrot::Loaded { dashboard } => dashboard.view()
         };
 
         container(content)
@@ -87,5 +81,9 @@ impl Application for PgParrot {
             .center_x()
             .center_y()
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
