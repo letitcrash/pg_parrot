@@ -1,11 +1,12 @@
 use super::error::Error;
 use serde::{Deserialize, Deserializer};
+use url::Url;
 use std::io::Read;
 use std::{collections::HashMap, fs::File};
 
 const PG_DEFAULT_PORT: u16 = 5432;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Connection {
     username: String,
     password: String,
@@ -15,18 +16,7 @@ pub struct Connection {
     sslmode: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct ConnectionUrl {
-    url: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum DatabaseConfig {
-    Connection(Connection),
-    ConnectionUrl(ConnectionUrl),
-}
-
-impl<'de> Deserialize<'de> for DatabaseConfig {
+impl<'de> Deserialize<'de> for Connection {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -36,7 +26,23 @@ impl<'de> Deserialize<'de> for DatabaseConfig {
 
         if map.contains_key("url") {
             let url = map.remove("url").unwrap().as_str().unwrap().to_string();
-            Ok(DatabaseConfig::ConnectionUrl(ConnectionUrl { url }))
+            let u = Url::parse(&url).map_err(|e| serde::de::Error::custom(e.to_string()))?;
+            let username = u.username().to_string();
+            let password = u.password().unwrap_or("").to_string();
+            let host = u.host_str().unwrap().to_string();
+            let port = u.port().unwrap_or(PG_DEFAULT_PORT);
+            let database = u.path().trim_start_matches('/').to_string();
+            let sslmode = u.query_pairs().find(|(k, _)| k == "sslmode").map(|(_, v)| v.to_string());
+
+            Ok(Self {
+                username,
+                password,
+                host,
+                port,
+                database,
+                sslmode,
+            })
+
         } else {
             let username = map.remove("username").unwrap().as_str().unwrap().to_string();
             let password = map.remove("password").unwrap().as_str().unwrap().to_string();
@@ -45,14 +51,14 @@ impl<'de> Deserialize<'de> for DatabaseConfig {
             let database = map.remove("database").unwrap().as_str().unwrap().to_string();
             let sslmode = map.remove("sslmode").map(|v| v.as_str().unwrap().to_string());
 
-            Ok(DatabaseConfig::Connection(Connection {
+            Ok(Self {
                 username,
                 password,
                 host,
                 port,
                 database,
                 sslmode,
-            }))
+            })
         }
     }
 }
@@ -64,7 +70,7 @@ pub struct OpenAI {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub connections: Option<Vec<DatabaseConfig>>,
+    pub connections: Option<Vec<Connection>>,
     pub openai: OpenAI,
 }
 
@@ -76,5 +82,9 @@ impl Config {
         let config: Config = toml::from_str(&contents)?;
 
         Ok(config)
+    }
+
+    pub fn connection_names(&self) -> Vec<String> {
+        self.connections.as_ref().unwrap().iter().map(|c| c.database.clone()).collect()
     }
 }
