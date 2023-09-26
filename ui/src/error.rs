@@ -16,7 +16,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn view(&self) -> Column<Message> {
+    pub fn view(&self) -> Element<Message> {
         match self {
             Error::NotFound =>  {
                 column![
@@ -26,6 +26,7 @@ impl Error {
                 .max_width(500)
                 .spacing(20)
                 .align_items(Alignment::Center)
+                .into()
             }
             Error::ParseError => {
                 column![
@@ -35,14 +36,17 @@ impl Error {
                 .max_width(500)
                 .spacing(20)
                 .align_items(Alignment::Center)
+                .into()
             }
             Error::ConnectionError => {
                 column![text("Connection error").size(18)]
                     .width(Length::Shrink)
+                    .into()
             }
             Error::QueryError => {
                 column![text("Query error").size(18)]
                     .width(Length::Shrink)
+                    .into()
             }
         }
     }
