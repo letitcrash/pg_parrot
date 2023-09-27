@@ -1,29 +1,38 @@
-use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
-use iced::widget::{self, button, column, container, row, text, Column, PaneGrid, scrollable};
+use iced::widget::{self, button, column, container, row, scrollable, text, Column, PaneGrid};
+use iced::{theme, Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 
-use crate::Message;
+use crate::config;
 
 #[derive(Debug)]
 pub struct Sidebar {
     hidden: bool,
-    connection_names: Vec<String>,
+    // config: &'static config::Config,
 }
 
 impl Sidebar {
-    pub fn new(connection_names: Vec<String>) -> Self {
-        Self { hidden: false, connection_names }
+    pub fn new() -> Self {
+        Self { hidden: false }
     }
 
     pub fn toggle(&mut self) {
         self.hidden = !self.hidden;
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self, config: &crate::Config) -> Element<crate::Message> {
         let mut column = column![].spacing(1);
 
-        for name in &self.connection_names {
-            column = column.push(text(name));
-            // column = column.push(button(name).on_press(Message::SelectConnection(name.clone())));
+        for (name, id, active) in config.connection_names() {
+            let button_title = if active {
+                format!("{} (connected)", name)
+            } else {
+                name
+            };
+
+            let button = button(text(button_title))
+                .on_press(crate::Message::Connect(id))
+                .style(theme::Button::Destructive);
+
+            column = column.push(button);
         }
 
         container(
@@ -36,6 +45,7 @@ impl Sidebar {
         .padding([8, 0, 6, 6])
         .center_x()
         .max_width(120)
+        .style(theme::Container::Box)
         .into()
 
         // if self.hidden {

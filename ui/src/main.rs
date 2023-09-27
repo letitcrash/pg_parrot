@@ -1,11 +1,11 @@
 mod config;
-mod error;
 mod dashboard;
+mod error;
 
 use ai_client;
-use config::Config;
-use error::Error;
+use config::{Config, Connection};
 use dashboard::Dashboard;
+use error::Error;
 use iced::executor;
 use iced::widget::{self, button, column, container, row, text};
 use iced::window;
@@ -18,8 +18,13 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 enum PgParrot {
     Loading,
-    Loaded { dashboard: Dashboard },
-    Errored { e: Error },
+    Loaded {
+        dashboard: Dashboard,
+        config: Config,
+    },
+    Errored {
+        e: Error,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +32,9 @@ pub enum Message {
     Config(Result<Config, Error>),
     Retry,
     Exit,
+    Connect(u8),
+    Disconnect(u8),
+    Connected(Result<(), Error>),
 }
 
 impl Application for PgParrot {
@@ -44,7 +52,7 @@ impl Application for PgParrot {
 
     fn title(&self) -> String {
         let subtitle = match self {
-            PgParrot::Loaded { dashboard } => dashboard.title(),
+            PgParrot::Loaded { .. } => "Dashboard",
             PgParrot::Errored { .. } => "Whoops!",
             _ => "Loading",
         };
@@ -57,7 +65,9 @@ impl Application for PgParrot {
             Message::Exit => window::close(),
             Message::Retry => Command::perform(Config::new(), Message::Config),
             Message::Config(Ok(config)) => {
-                *self = PgParrot::Loaded { dashboard: Dashboard::new(config) };
+                // let connections = config.connections.unwrap();
+                let dashboard = Dashboard::new();
+                *self = PgParrot::Loaded { dashboard, config };
                 Command::none()
             }
             Message::Config(Err(e)) => {
@@ -65,14 +75,53 @@ impl Application for PgParrot {
                 *self = PgParrot::Errored { e };
                 Command::none()
             }
+            Message::Connect(id) => match self {
+                PgParrot::Loaded { dashboard, config } => {
+                    let mut connection = config.get_connection(id).clone();
+                    // match connection.connect().await {
+                    //     Ok(()) => {
+                    //         *self = PgParrot::Loaded {
+                    //             dashboard: *dashboard,
+                    //             config: config.set_connection_active(id, true),
+                    //         };
+                    //     }
+                    //     Err(e) => {
+                    //         *self = PgParrot::Errored { e };
+                    //     }
+                    // }
+                    // Command::perform(conne, Message::Connected)
+
+                    // *self = PgParrot::Loaded {
+                    //     config: config.set_connection_active(id, true),
+                    //     ..*self
+                    // };
+
+                    Command::none()
+                }
+                _ => Command::none(),
+            },
+            Message::Connected(Ok(())) => {
+                dbg!("connected");
+                Command::none()
+            }
+            Message::Connected(Err(e)) => {
+                *self = PgParrot::Errored { e };
+                Command::none()
+            }
+            Message::Disconnect(id) => {
+                dbg!(id);
+                Command::none()
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
         let content = match self {
-            PgParrot::Loading => column![text("Loading...").size(18),].width(Length::Shrink).into(),
+            PgParrot::Loading => column![text("Loading...").size(18),]
+                .width(Length::Shrink)
+                .into(),
             PgParrot::Errored { e } => e.view(),
-            PgParrot::Loaded { dashboard } => dashboard.view()
+            PgParrot::Loaded { dashboard, config } => dashboard.view(config),
         };
 
         container(content)
