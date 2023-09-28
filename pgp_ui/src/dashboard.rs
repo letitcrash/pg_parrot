@@ -25,6 +25,8 @@ impl Dashboard {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Connect(id) => {
+                let connection = self.config.get_connection(id);
+                
                 self.config = self.config.set_connection_active(id, true);
 
                 Command::none()

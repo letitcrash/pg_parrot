@@ -1,15 +1,14 @@
-mod config;
 mod dashboard;
 mod error;
 
-use ai_client;
-use config::{Config, Connection};
+use pgp_core::config::{Config, Connection};
 use dashboard::Dashboard;
-use error::Error;
+use pgp_core::error::Error;
 use iced::executor;
 use iced::widget::{self, button, column, container, row, text};
 use iced::window;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
+use error::ErrorExt;
 
 pub fn main() -> iced::Result {
     PgParrot::run(Settings::default())

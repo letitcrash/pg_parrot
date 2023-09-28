@@ -1,24 +1,17 @@
-use core::fmt;
-
 use iced::widget::{self, button, column, container, row, text, Column};
 use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
+use pgp_core::error::Error;
 
-use crate::Message;
-
-#[derive(Debug, Clone, Copy)]
-pub enum Error {
-    NotFound,
-    ParseError,
-    ConnectionError,
-    QueryError,
+pub trait ErrorExt {
+    fn view(&self) -> Element<crate::Message>;
 }
 
-impl Error {
-    pub fn view(&self) -> Element<Message> {
+impl ErrorExt for Error {
+    fn view(&self) -> Element<crate::Message> {
         match self {
             Error::NotFound => column![
                 text("Config not found").size(18),
-                button("Retry").on_press(Message::Retry)
+                button("Retry").on_press(crate::Message::Retry)
             ]
             .max_width(500)
             .spacing(20)
@@ -26,7 +19,7 @@ impl Error {
             .into(),
             Error::ParseError => column![
                 text("Wrong config").size(18),
-                button("Exit!").on_press(Message::Retry)
+                button("Exit!").on_press(crate::Message::Retry)
             ]
             .max_width(500)
             .spacing(20)
@@ -39,21 +32,5 @@ impl Error {
                 .width(Length::Shrink)
                 .into(),
         }
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(error: std::io::Error) -> Error {
-        dbg!(error);
-
-        Error::NotFound
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(error: toml::de::Error) -> Error {
-        dbg!(error);
-
-        Error::ParseError
     }
 }

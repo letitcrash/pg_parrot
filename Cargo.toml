@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "ui",
-    "ai_client"
+    "pgp_ui",
+    "pgp_core"
 ]

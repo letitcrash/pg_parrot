@@ -1,4 +1,4 @@
-use super::error::Error;
+use crate::error::Error;
 use serde::{Deserialize, Deserializer};
 use std::io::Read;
 use std::sync::atomic::{AtomicU8, Ordering};

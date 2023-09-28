@@ -1,7 +1,7 @@
 use iced::widget::{self, button, column, container, row, scrollable, text, Column, PaneGrid};
 use iced::{theme, Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 
-use crate::config;
+use pgp_core::config::{Config, Connection};
 
 #[derive(Debug)]
 pub struct Sidebar {
@@ -17,7 +17,7 @@ impl Sidebar {
         self.hidden = !self.hidden;
     }
 
-    pub fn view(&self, config: &crate::Config) -> Element<super::Message> {
+    pub fn view(&self, config: &Config) -> Element<super::Message> {
         let mut column = column![].spacing(1);
 
         for (name, id, active) in config.connection_names() {
