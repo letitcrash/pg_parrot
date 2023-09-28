@@ -4,31 +4,43 @@ use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Th
 
 #[derive(Debug)]
 pub struct Dashboard {
-    // config: &'static crate::Config,
+    config: crate::Config,
     sidebar: sidebar::Sidebar,
 }
 
-// #[derive(Debug, Clone)]
-// pub enum Message {
-//     Connect(u8),
-//     Disconnect(u8)
-// }
+#[derive(Debug, Clone)]
+pub enum Message {
+    Connect(u8),
+    Disconnect(u8),
+}
 
 impl Dashboard {
-    pub fn new() -> Self {
+    pub fn new(config: crate::Config) -> Self {
         Self {
             sidebar: sidebar::Sidebar::new(),
-            // config,
+            config,
         }
     }
 
-    // pub fn title(&self) -> &str {
-    //     &self.config.openai.token
-    // }
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::Connect(id) => {
+                self.config = self.config.set_connection_active(id, true);
 
-    pub fn view(&self, config: &crate::Config) -> Element<crate::Message> {
+                Command::none()
+                // Command::perform(ai_client::connect(connection), Message::Connect)
+            }
+            Message::Disconnect(id) => {
+                self.config = self.config.set_connection_active(id, false);
+                Command::none()
+                // Command::perform(ai_client::disconnect(connection), Message::Disconnect)
+            }
+        }
+    }
+
+    pub fn view(&self) -> Element<Message> {
         let height_margin = if cfg!(target_os = "macos") { 20 } else { 0 };
-        let sidebar = self.sidebar.view(config);
+        let sidebar = self.sidebar.view(&self.config);
 
         let base = row![]
             // .push_maybe(sidebar)

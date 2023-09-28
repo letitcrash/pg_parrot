@@ -6,7 +6,6 @@ use crate::config;
 #[derive(Debug)]
 pub struct Sidebar {
     hidden: bool,
-    // config: &'static config::Config,
 }
 
 impl Sidebar {
@@ -18,19 +17,25 @@ impl Sidebar {
         self.hidden = !self.hidden;
     }
 
-    pub fn view(&self, config: &crate::Config) -> Element<crate::Message> {
+    pub fn view(&self, config: &crate::Config) -> Element<super::Message> {
         let mut column = column![].spacing(1);
 
         for (name, id, active) in config.connection_names() {
-            let button_title = if active {
-                format!("{} (connected)", name)
+            let (title, action, style) = if active {
+                (
+                    format!("{} (connected)", name),
+                    super::Message::Disconnect(id),
+                    theme::Button::Primary,
+                )
             } else {
-                name
+                (
+                    name,
+                    super::Message::Connect(id),
+                    theme::Button::Secondary,
+                )
             };
 
-            let button = button(text(button_title))
-                .on_press(crate::Message::Connect(id))
-                .style(theme::Button::Destructive);
+            let button = button(text(title)).on_press(action).style(style);
 
             column = column.push(button);
         }

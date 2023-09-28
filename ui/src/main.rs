@@ -18,23 +18,16 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 enum PgParrot {
     Loading,
-    Loaded {
-        dashboard: Dashboard,
-        config: Config,
-    },
-    Errored {
-        e: Error,
-    },
+    Ready { dashboard: Dashboard },
+    Errored { e: Error },
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Config(Result<Config, Error>),
+    BuildConfig(Result<Config, Error>),
     Retry,
+    Dashboard(dashboard::Message),
     Exit,
-    Connect(u8),
-    Disconnect(u8),
-    Connected(Result<(), Error>),
 }
 
 impl Application for PgParrot {
@@ -46,13 +39,13 @@ impl Application for PgParrot {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             PgParrot::Loading,
-            Command::perform(Config::new(), Message::Config),
+            Command::perform(Config::new(), Message::BuildConfig),
         )
     }
 
     fn title(&self) -> String {
         let subtitle = match self {
-            PgParrot::Loaded { .. } => "Dashboard",
+            PgParrot::Ready { .. } => "Dashboard",
             PgParrot::Errored { .. } => "Whoops!",
             _ => "Loading",
         };
@@ -63,55 +56,25 @@ impl Application for PgParrot {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Exit => window::close(),
-            Message::Retry => Command::perform(Config::new(), Message::Config),
-            Message::Config(Ok(config)) => {
+            Message::Retry => Command::perform(Config::new(), Message::BuildConfig),
+            Message::BuildConfig(Ok(config)) => {
                 // let connections = config.connections.unwrap();
-                let dashboard = Dashboard::new();
-                *self = PgParrot::Loaded { dashboard, config };
+                let dashboard = Dashboard::new(config);
+                *self = PgParrot::Ready { dashboard };
                 Command::none()
             }
-            Message::Config(Err(e)) => {
+            Message::BuildConfig(Err(e)) => {
                 dbg!(e);
                 *self = PgParrot::Errored { e };
                 Command::none()
             }
-            Message::Connect(id) => match self {
-                PgParrot::Loaded { dashboard, config } => {
-                    let mut connection = config.get_connection(id).clone();
-                    // match connection.connect().await {
-                    //     Ok(()) => {
-                    //         *self = PgParrot::Loaded {
-                    //             dashboard: *dashboard,
-                    //             config: config.set_connection_active(id, true),
-                    //         };
-                    //     }
-                    //     Err(e) => {
-                    //         *self = PgParrot::Errored { e };
-                    //     }
-                    // }
-                    // Command::perform(conne, Message::Connected)
-
-                    // *self = PgParrot::Loaded {
-                    //     config: config.set_connection_active(id, true),
-                    //     ..*self
-                    // };
-
+            Message::Dashboard(mesage) => match self {
+                PgParrot::Ready { dashboard } => {
+                    let _ = dashboard.update(mesage);
                     Command::none()
                 }
                 _ => Command::none(),
             },
-            Message::Connected(Ok(())) => {
-                dbg!("connected");
-                Command::none()
-            }
-            Message::Connected(Err(e)) => {
-                *self = PgParrot::Errored { e };
-                Command::none()
-            }
-            Message::Disconnect(id) => {
-                dbg!(id);
-                Command::none()
-            }
         }
     }
 
@@ -121,7 +84,7 @@ impl Application for PgParrot {
                 .width(Length::Shrink)
                 .into(),
             PgParrot::Errored { e } => e.view(),
-            PgParrot::Loaded { dashboard, config } => dashboard.view(config),
+            PgParrot::Ready { dashboard } => dashboard.view().map(Message::Dashboard),
         };
 
         container(content)
