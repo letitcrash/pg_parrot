@@ -21,3 +21,11 @@ impl From<toml::de::Error> for Error {
         Error::ParseError
     }
 }
+
+impl From<tokio_postgres::Error> for Error {
+    fn from(error: tokio_postgres::Error) -> Error {
+        dbg!(error);
+
+        Error::ConnectionError
+    }
+}
