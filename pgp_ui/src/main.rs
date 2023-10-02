@@ -1,7 +1,8 @@
 mod dashboard;
 mod error;
 
-use pgp_core::config::{Config, Connection};
+use pgp_core::config::Config;
+use pgp_core::connection::Connection;
 use dashboard::Dashboard;
 use pgp_core::error::Error;
 use iced::executor;

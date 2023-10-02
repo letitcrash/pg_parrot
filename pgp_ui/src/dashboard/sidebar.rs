@@ -1,7 +1,8 @@
 use iced::widget::{self, button, column, container, row, scrollable, text, Column, PaneGrid};
 use iced::{theme, Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 
-use pgp_core::config::{Config, Connection};
+use pgp_core::config::Config;
+use pgp_core::connection::Connection;
 
 #[derive(Debug)]
 pub struct Sidebar {

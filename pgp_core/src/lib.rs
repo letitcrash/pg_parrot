@@ -1,5 +1,6 @@
 pub mod error;
 pub mod config;
+pub mod connection;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
