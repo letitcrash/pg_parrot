@@ -1,25 +1,33 @@
 mod dashboard;
 mod error;
 
-use pgp_core::config::Config;
-use pgp_core::connection::Connection;
 use dashboard::Dashboard;
-use pgp_core::error::Error;
+use error::ErrorExt;
 use iced::executor;
 use iced::widget::{self, button, column, container, row, text};
 use iced::window;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
-use error::ErrorExt;
+use pgp_core::connection;
 
-pub fn main() -> iced::Result {
+use pgp_core::config::Config;
+use pgp_core::connection::Connection;
+use pgp_core::error::Error;
+
+#[tokio::main]
+async fn main() -> iced::Result {
     PgParrot::run(Settings::default())
 }
 
 #[derive(Debug)]
 enum PgParrot {
     Loading,
-    Ready { dashboard: Dashboard },
-    Errored { e: Error },
+    Ready {
+        dashboard: Dashboard,
+        // notifications: Vec<Notification>,
+    },
+    Errored {
+        error: Error,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +35,7 @@ pub enum Message {
     BuildConfig(Result<Config, Error>),
     Retry,
     Dashboard(dashboard::Message),
+    // Error(error::Message),
     Exit,
 }
 
@@ -58,21 +67,20 @@ impl Application for PgParrot {
             Message::Exit => window::close(),
             Message::Retry => Command::perform(Config::new(), Message::BuildConfig),
             Message::BuildConfig(Ok(config)) => {
-                // let connections = config.connections.unwrap();
                 let dashboard = Dashboard::new(config);
                 *self = PgParrot::Ready { dashboard };
                 Command::none()
             }
-            Message::BuildConfig(Err(e)) => {
-                dbg!(e);
-                *self = PgParrot::Errored { e };
+            Message::BuildConfig(Err(error)) => {
+                dbg!(error);
+                *self = PgParrot::Errored { error };
                 Command::none()
             }
-            Message::Dashboard(mesage) => match self {
+            Message::Dashboard(message) => match self {
                 PgParrot::Ready { dashboard } => {
-                    let _ = dashboard.update(mesage);
-                    Command::none()
-                }
+                    println!("Dashboard message: {:?}", message); 
+                    dashboard.update(message).map(Message::Dashboard)
+                },
                 _ => Command::none(),
             },
         }
@@ -83,7 +91,7 @@ impl Application for PgParrot {
             PgParrot::Loading => column![text("Loading...").size(18),]
                 .width(Length::Shrink)
                 .into(),
-            PgParrot::Errored { e } => e.view(),
+            PgParrot::Errored { error } => error.view(),
             PgParrot::Ready { dashboard } => dashboard.view().map(Message::Dashboard),
         };
 

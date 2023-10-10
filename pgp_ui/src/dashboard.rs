@@ -1,10 +1,14 @@
 mod sidebar;
+use iced::theme::palette::Danger;
 use iced::widget::{self, button, column, container, row, text, Column, PaneGrid};
 use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
+use pgp_core::config::Config;
+use pgp_core::connection::{self, Connection};
+use pgp_core::error::Error;
 
 #[derive(Debug)]
 pub struct Dashboard {
-    config: crate::Config,
+    config: Config,
     sidebar: sidebar::Sidebar,
 }
 
@@ -12,6 +16,8 @@ pub struct Dashboard {
 pub enum Message {
     Connect(u8),
     Disconnect(u8),
+    Connected(Result<Connection, Error>),
+    Disconnected(Result<Connection, Error>),
 }
 
 impl Dashboard {
@@ -25,17 +31,50 @@ impl Dashboard {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Connect(id) => {
-                let connection = self.config.get_connection(id);
-                
-                self.config = self.config.set_connection_active(id, true);
+                let connection = self.config.get_connection(id).clone();
 
-                Command::none()
-                // Command::perform(ai_client::connect(connection), Message::Connect)
+                println!("Connecting to {:?}", connection.database);
+                Command::perform(pgp_core::start_client(connection), Message::Connected)
             }
             Message::Disconnect(id) => {
-                self.config = self.config.set_connection_active(id, false);
+                let connection = self.config.get_connection(id).clone();
+
+                // println!("Disconnecting from {:?}", id);
+                Command::perform(pgp_core::stop_client(connection), Message::Disconnected)
+            }
+            Message::Connected(Ok(connention)) => {
+                println!("Connected");
+                let mut connections = self.config.connections.as_ref().unwrap().clone();
+                let index = connections
+                    .iter()
+                    .position(|c| c.id == connention.id)
+                    .unwrap();
+                connections[index] = connention;
+
+                self.config.connections = Some(connections);
+
                 Command::none()
-                // Command::perform(ai_client::disconnect(connection), Message::Disconnect)
+            }
+            Message::Connected(Err(error)) => {
+                dbg!(error);
+                Command::none()
+            }
+            Message::Disconnected(Ok(connention)) => {
+                println!("Disconnected");
+                let mut connections = self.config.connections.as_ref().unwrap().clone();
+                let index = connections
+                    .iter()
+                    .position(|c| c.id == connention.id)
+                    .unwrap();
+                connections[index] = connention;
+
+                self.config.connections = Some(connections);
+
+                Command::none()
+            }
+            Message::Disconnected(Err(error)) => {
+                dbg!(error);
+                Command::none()
             }
         }
     }

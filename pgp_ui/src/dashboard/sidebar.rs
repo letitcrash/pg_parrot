@@ -3,6 +3,7 @@ use iced::{theme, Alignment, Application, Color, Command, Element, Length, Setti
 
 use pgp_core::config::Config;
 use pgp_core::connection::Connection;
+use super::Message;
 
 #[derive(Debug)]
 pub struct Sidebar {
@@ -18,20 +19,20 @@ impl Sidebar {
         self.hidden = !self.hidden;
     }
 
-    pub fn view(&self, config: &Config) -> Element<super::Message> {
+    pub fn view(&self, config: &Config) -> Element<Message> {
         let mut column = column![].spacing(1);
 
         for (name, id, active) in config.connection_names() {
             let (title, action, style) = if active {
                 (
-                    format!("{} (connected)", name),
-                    super::Message::Disconnect(id),
+                    name,
+                    Message::Disconnect(id),
                     theme::Button::Primary,
                 )
             } else {
                 (
                     name,
-                    super::Message::Connect(id),
+                    Message::Connect(id),
                     theme::Button::Secondary,
                 )
             };

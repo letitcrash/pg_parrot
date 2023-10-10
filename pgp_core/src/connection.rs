@@ -1,11 +1,13 @@
 use serde::Deserialize;
 use serde::Deserializer;
-use url::Url;
 use tokio_postgres::NoTls;
+use url::Url;
 
 use crate::error::Error;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{Arc, Mutex};
+use tokio_postgres::Client;
 
 const PG_DEFAULT_PORT: u16 = 5432;
 static NEXT_ID: AtomicU8 = AtomicU8::new(1);
@@ -13,29 +15,54 @@ static NEXT_ID: AtomicU8 = AtomicU8::new(1);
 #[derive(Debug, Clone)]
 pub struct Connection {
     pub id: u8,
-    username: String,
-    password: String,
-    host: String,
-    port: u16,
+    pub username: String,
+    pub password: String,
+    pub host: String,
+    pub port: u16,
     pub database: String,
-    sslmode: Option<String>,
+    pub sslmode: Option<String>,
     pub active: bool,
+    pub client: Arc<Mutex<Option<Client>>>,
 }
 
 impl Connection {
-    pub async fn start(self) -> Result<tokio_postgres::Client, Error> {
+    pub async fn client(&self) -> Result<Self, Error> {
         let (client, connection) = tokio_postgres::connect(
             "postgres://test_user:secret_password@localhost/test_database",
             NoTls,
-          )
-          .await?;
-        
-        
-        Ok(client)
+        )
+        .await?;
+
+        // tokio::spawn(async move {
+        //     if let Err(e) = connection.await {
+        //         eprintln!("connection error: {}", e);
+        //     }
+        // });
+
+        Ok(Connection {
+            id: self.id,
+            username: self.username.clone(),
+            password: self.password.clone(),
+            host: self.host.clone(),
+            port: self.port,
+            database: self.database.clone(),
+            sslmode: self.sslmode.clone(),
+            active: self.active,
+            client: Arc::new(Mutex::new(Some(client))),
+        })
     }
-    
-    pub async fn stop(&self) -> Result<u8, Error> {
-        Ok(self.id)
+
+    pub fn url(&self) -> String {
+        let mut url = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.database
+        );
+
+        if let Some(sslmode) = &self.sslmode {
+            url.push_str(&format!("?sslmode={}", sslmode));
+        }
+
+        url
     }
 }
 
@@ -70,6 +97,7 @@ impl<'de> Deserialize<'de> for Connection {
                 database,
                 sslmode,
                 active,
+                client: Arc::new(Mutex::new(None)),
             })
         } else {
             let username = map
@@ -109,6 +137,7 @@ impl<'de> Deserialize<'de> for Connection {
                 database,
                 sslmode,
                 active,
+                client: Arc::new(Mutex::new(None)),
             })
         }
     }

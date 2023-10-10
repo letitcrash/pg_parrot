@@ -3,6 +3,7 @@ use crate::error::Error;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenAI {
@@ -22,7 +23,7 @@ impl Config {
         file.read_to_string(&mut contents)?;
         let config: Config = toml::from_str(&contents)?;
 
-        print!("{:?}", config);
+        // print!("{:?}", config);
 
         Ok(config)
     }
@@ -45,14 +46,27 @@ impl Config {
             .unwrap()
     }
 
-    pub fn set_connection_active(&self, id: u8, active: bool) -> Self {
-        let mut connections = self.connections.as_ref().unwrap().clone();
-        let index = connections.iter().position(|c| c.id == id).unwrap();
-        connections[index].active = active;
+    // pub async fn start_connection(&self, id: u8) -> Result<Config, Error> {
+    //     let connection = self.get_connection(id);
+    //     let client = connection.client().await?;
+    //     let mut connections = self.connections.as_ref().unwrap().clone();
+    //     let index = connections.iter().position(|c| c.id == id).unwrap();
+    //     connections[index].client = Arc::new(Mutex::new(Some(client)));
 
-        Self {
-            connections: Some(connections),
-            ..self.clone()
-        }
-    }
+    //     Ok(Self {
+    //         connections: Some(connections),
+    //         ..self.clone()
+    //     })
+    // }
+
+    // pub fn set_connection_active(&self, active: bool) -> Self {
+    //     let mut connections = self.connections.as_ref().unwrap().clone();
+    //     let index = connections.iter().position(|c| c.id == id).unwrap();
+    //     connections[index].active = active;
+
+    //     Self {
+    //         connections: Some(connections),
+    //         ..self.clone()
+    //     }
+    // }
 }

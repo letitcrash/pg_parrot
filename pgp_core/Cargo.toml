@@ -10,3 +10,4 @@ tokio-postgres = "0.7.10"
 url = "2.4.1"
 toml = "0.8.0"
 serde = { version = "1.0.188", features = ["derive"] }
+tokio = { version = "1.33", features = ["full"]}
