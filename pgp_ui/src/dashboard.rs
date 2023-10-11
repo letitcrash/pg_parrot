@@ -21,6 +21,7 @@ pub enum Message {
     Disconnect(u8),
     Connected(Result<Connection, Error>),
     Disconnected(Result<Connection, Error>),
+    Query
 }
 
 impl Dashboard {
@@ -56,7 +57,7 @@ impl Dashboard {
                 connections[index] = connention;
 
                 self.config.connections = Some(connections);
-                self.viewport = Viewport::Ready;
+                self.viewport = Viewport::new();
 
                 Command::none()
             }
@@ -79,6 +80,13 @@ impl Dashboard {
             Message::Disconnected(Err(error)) => {
                 // dbg!(error);
                 self.viewport = Viewport::Errored(error);
+                Command::none()
+            }
+            Message::Query => {
+                let connection = self.config.get_connection(0).clone();
+                let name = connection.database.clone();
+                self.viewport = Viewport::Loading { name, message };
+                // Command::perform(pgp_core::query(connection), Message::Disconnected)
                 Command::none()
             }
         }

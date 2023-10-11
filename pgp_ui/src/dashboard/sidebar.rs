@@ -24,7 +24,7 @@ impl Sidebar {
 
         for (name, id, active) in config.connection_names() {
             let (title, action, style) = if active {
-                (name, Message::Disconnect(id), theme::Button::Primary)
+                (name, Message::Disconnect(id), theme::Button::Positive)
             } else {
                 (name, Message::Connect(id), theme::Button::Secondary)
             };
