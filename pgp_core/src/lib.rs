@@ -10,7 +10,6 @@ pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
 
-// #[tokio::main]
 pub async fn start_client(conn: Connection) -> Result<Connection, Error> {
     let (client, connection) = tokio_postgres::connect(conn.url().as_str(), NoTls).await?;
 

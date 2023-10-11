@@ -72,7 +72,7 @@ impl Application for PgParrot {
                 Command::none()
             }
             Message::BuildConfig(Err(error)) => {
-                dbg!(error);
+                // dbg!(error);
                 *self = PgParrot::Errored { error };
                 Command::none()
             }

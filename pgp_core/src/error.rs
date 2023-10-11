@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy)]
+use std::fmt;
+
+#[derive(Debug, Clone)]
 pub enum Error {
     NotFound,
     ParseError,
@@ -27,5 +29,18 @@ impl From<tokio_postgres::Error> for Error {
         dbg!(error);
 
         Error::ConnectionError
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        dbg!(self);
+
+        match self {
+            Error::NotFound => write!(f, "Config not found"),
+            Error::ParseError => write!(f, "Wrong config"),
+            Error::ConnectionError => write!(f, "Connection error"),
+            Error::QueryError => write!(f, "Query error"),
+        }
     }
 }

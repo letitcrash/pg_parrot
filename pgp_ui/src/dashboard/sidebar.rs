@@ -1,9 +1,9 @@
 use iced::widget::{self, button, column, container, row, scrollable, text, Column, PaneGrid};
 use iced::{theme, Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 
+use super::Message;
 use pgp_core::config::Config;
 use pgp_core::connection::Connection;
-use super::Message;
 
 #[derive(Debug)]
 pub struct Sidebar {
@@ -24,20 +24,15 @@ impl Sidebar {
 
         for (name, id, active) in config.connection_names() {
             let (title, action, style) = if active {
-                (
-                    name,
-                    Message::Disconnect(id),
-                    theme::Button::Primary,
-                )
+                (name, Message::Disconnect(id), theme::Button::Primary)
             } else {
-                (
-                    name,
-                    Message::Connect(id),
-                    theme::Button::Secondary,
-                )
+                (name, Message::Connect(id), theme::Button::Secondary)
             };
 
-            let button = button(text(title)).on_press(action).style(style);
+            let button = button(text(title))
+                .on_press(action)
+                .style(style)
+                .width(Length::Fill);
 
             column = column.push(button);
         }
@@ -49,9 +44,10 @@ impl Sidebar {
                     .scroller_width(0),
             )),
         )
-        .padding([8, 0, 6, 6])
+        .padding([8, 8, 6, 6])
         .center_x()
-        .max_width(120)
+        .max_width(150)
+        .height(Length::Fill)
         .style(theme::Container::Box)
         .into()
 
