@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use tokio_postgres::Client;
 
 const PG_DEFAULT_PORT: u16 = 5432;
+const DEFAULT_CONNECT_TIMEOUT: u16 = 5;
 static NEXT_ID: AtomicU8 = AtomicU8::new(1);
 
 #[derive(Debug, Clone)]
@@ -22,35 +23,37 @@ pub struct Connection {
     pub database: String,
     pub sslmode: Option<String>,
     pub active: bool,
+    pub timeout: u16,
     pub client: Arc<Mutex<Option<Client>>>,
 }
 
 impl Connection {
-    pub async fn client(&self) -> Result<Self, Error> {
-        let (client, connection) = tokio_postgres::connect(
-            "postgres://test_user:secret_password@localhost/test_database",
-            NoTls,
-        )
-        .await?;
+    // pub async fn client(&self) -> Result<Self, Error> {
+    //     let (client, connection) = tokio_postgres::connect(
+    //         "postgres://test_user:secret_password@localhost/test_database",
+    //         NoTls,
+    //     )
+    //     .await?;
 
-        // tokio::spawn(async move {
-        //     if let Err(e) = connection.await {
-        //         eprintln!("connection error: {}", e);
-        //     }
-        // });
+    //     tokio::spawn(async move {
+    //         if let Err(e) = connection.await {
+    //             eprintln!("connection error: {}", e);
+    //         }
+    //     });
 
-        Ok(Connection {
-            id: self.id,
-            username: self.username.clone(),
-            password: self.password.clone(),
-            host: self.host.clone(),
-            port: self.port,
-            database: self.database.clone(),
-            sslmode: self.sslmode.clone(),
-            active: self.active,
-            client: Arc::new(Mutex::new(Some(client))),
-        })
-    }
+    //     Ok(Connection {
+    //         id: self.id,
+    //         username: self.username.clone(),
+    //         password: self.password.clone(),
+    //         host: self.host.clone(),
+    //         port: self.port,
+    //         database: self.database.clone(),
+    //         sslmode: self.sslmode.clone(),
+    //         active: self.active,
+    //         timeout: self.timeout,
+    //         client: Arc::new(Mutex::new(Some(client))),
+    //     })
+    // }
 
     pub fn url(&self) -> String {
         let mut url = format!(
@@ -58,9 +61,14 @@ impl Connection {
             self.username, self.password, self.host, self.port, self.database
         );
 
+        url.push_str(&format!("?connect_timeout={}", self.timeout));
+
+        
         if let Some(sslmode) = &self.sslmode {
-            url.push_str(&format!("?sslmode={}", sslmode));
+            url.push_str(&format!("&sslmode={}", sslmode));
         }
+
+        print!("{}", url);
 
         url
     }
@@ -97,6 +105,7 @@ impl<'de> Deserialize<'de> for Connection {
                 database,
                 sslmode,
                 active,
+                timeout: DEFAULT_CONNECT_TIMEOUT,
                 client: Arc::new(Mutex::new(None)),
             })
         } else {
@@ -124,6 +133,12 @@ impl<'de> Deserialize<'de> for Connection {
                 .as_str()
                 .unwrap()
                 .to_string();
+
+            let timeout = map
+                .remove("timeout")
+                .map(|v| v.as_integer().unwrap() as u16)
+                .unwrap_or(DEFAULT_CONNECT_TIMEOUT);
+            
             let sslmode = map
                 .remove("sslmode")
                 .map(|v| v.as_str().unwrap().to_string());
@@ -137,6 +152,7 @@ impl<'de> Deserialize<'de> for Connection {
                 database,
                 sslmode,
                 active,
+                timeout,
                 client: Arc::new(Mutex::new(None)),
             })
         }
