@@ -7,10 +7,8 @@ use iced::executor;
 use iced::widget::{self, button, column, container, row, text};
 use iced::window;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
-use pgp_core::connection;
 
 use pgp_core::config::Config;
-use pgp_core::connection::Connection;
 use pgp_core::error::Error;
 
 #[tokio::main]
@@ -78,7 +76,6 @@ impl Application for PgParrot {
             }
             Message::Dashboard(message) => match self {
                 PgParrot::Ready { dashboard } => {
-                    println!("Dashboard message: {:?}", message); 
                     dashboard.update(message).map(Message::Dashboard)
                 },
                 _ => Command::none(),

@@ -6,6 +6,7 @@ use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Th
 use pgp_core::config::Config;
 use pgp_core::connection::{self, Connection};
 use pgp_core::error::Error;
+use pgp_core::Database;
 use viewport::Viewport;
 
 #[derive(Debug)]
@@ -19,9 +20,8 @@ pub struct Dashboard {
 pub enum Message {
     Connect(u8),
     Disconnect(u8),
-    Connected(Result<Connection, Error>),
-    Disconnected(Result<Connection, Error>),
-    Query
+    Connected(Result<Database, Error>),
+    Viewppoort(viewport::Message),
 }
 
 impl Dashboard {
@@ -39,84 +39,32 @@ impl Dashboard {
                 let connection = self.config.get_connection(id).clone();
                 let name = connection.database.clone();
                 self.viewport = Viewport::Loading { name, message };
-                println!("Connecting to {:?}", connection.database);
-                Command::perform(pgp_core::start_client(connection), Message::Connected)
+                Command::perform(pgp_core::client(connection), Message::Connected)
             }
             Message::Disconnect(id) => {
-                let connection = self.config.get_connection(id).clone();
-                let name = connection.database.clone();
-                self.viewport = Viewport::Loading { name, message };
-                Command::perform(pgp_core::stop_client(connection), Message::Disconnected)
+                self.config = self.config.set_connection_active(id, false);
+                self.viewport = Viewport::default();
+                Command::none()
             }
-            Message::Connected(Ok(connention)) => {
-                let mut connections = self.config.connections.as_ref().unwrap().clone();
-                let index = connections
-                    .iter()
-                    .position(|c| c.id == connention.id)
-                    .unwrap();
-                connections[index] = connention;
-
-                self.config.connections = Some(connections);
-                self.viewport = Viewport::new();
+            Message::Connected(Ok(db)) => {
+                self.config = self.config.set_connection_active(db.id, true);
+                self.viewport = Viewport::new(db);
 
                 Command::none()
             }
             Message::Connected(Err(error)) => {
-                self.viewport = Viewport::Errored(error);
+                self.viewport = Viewport::Errored { error };
                 Command::none()
             }
-            Message::Disconnected(Ok(connention)) => {
-                let mut connections = self.config.connections.as_ref().unwrap().clone();
-                let index = connections
-                    .iter()
-                    .position(|c| c.id == connention.id)
-                    .unwrap();
-                connections[index] = connention;
-
-                self.config.connections = Some(connections);
-                self.viewport = Viewport::default();
-                Command::none()
-            }
-            Message::Disconnected(Err(error)) => {
-                // dbg!(error);
-                self.viewport = Viewport::Errored(error);
-                Command::none()
-            }
-            Message::Query => {
-                let connection = self.config.get_connection(0).clone();
-                let name = connection.database.clone();
-                self.viewport = Viewport::Loading { name, message };
-                // Command::perform(pgp_core::query(connection), Message::Disconnected)
-                Command::none()
-            }
+            Message::Viewppoort(message) => self.viewport.update(message).map(Message::Viewppoort),
         }
     }
 
     pub fn view(&self) -> Element<Message> {
         let height_margin = if cfg!(target_os = "macos") { 20 } else { 0 };
         let sidebar = self.sidebar.view(&self.config);
-        let viewport = self.viewport.view(&self.config);
+        let viewport = self.viewport.view(&self.config).map(Message::Viewppoort);
         let base = row![].push(sidebar).push(viewport);
-
-        // let base = match &self.notification {
-        //     Some(notification) => {
-        //         let notification = notification.view();
-        //         row![].push(sidebar).push(notification)
-        //     }
-        //     None => row![].push(sidebar),
-        // };
-
-        // row![].push(sidebar);
-
-        // if self.notification.is_some() {
-        //     let notification = self.notification.as_ref().unwrap().view(&self.config);
-        //     base.push(notification);
-        // }
-
-        // base = match &self.notification {
-        //     Some(notification) => base.push(notification.view(&self.config)),
-        //     None => base,
-        // };
 
         base.width(Length::Fill)
             .height(Length::Fill)

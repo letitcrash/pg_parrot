@@ -1,48 +1,69 @@
-use connection::Connection;
 use error::Error;
-use tokio_postgres::NoTls;
+use native_tls::TlsConnector;
+use postgres_native_tls::{MakeTlsConnector, TlsStream};
+use std::sync::{Arc, Mutex};
+use tokio_postgres::{
+    tls::{NoTlsFuture, NoTlsStream},
+    Client, NoTls, Socket,
+};
 
 pub mod config;
 pub mod connection;
 pub mod error;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+#[derive(Debug, Clone)]
+pub struct Database {
+    pub id: u8,
+    pub client: Arc<Mutex<Option<Client>>>,
 }
 
-pub async fn start_client(conn: Connection) -> Result<Connection, Error> {
-    let (client, connection) = tokio_postgres::connect(conn.url().as_str(), NoTls).await?;
+pub async fn client(conn: connection::Connection) -> Result<Database, Error> {
+    let url = conn.url().clone();
+    let id = conn.id;
 
-    println!("Connected to {}", conn.url());
+    match conn.sslmode {
+        Some(sslmode) => match sslmode.as_str() {
+            "require" => connect_ssl(url, id).await,
+            _ => connect(url, id).await,
+        },
+        None => connect(url, id).await,
+    }
+}
 
+async fn connect(url: String, id: u8) -> Result<Database, Error> {
+    let (client, connection) = tokio_postgres::connect(url.as_str(), NoTls).await?;
     tokio::spawn(async move {
         if let Err(e) = connection.await {
             eprintln!("connection error: {}", e);
         }
     });
 
-    Ok(Connection {
-        client: std::sync::Arc::new(std::sync::Mutex::new(Some(client))),
-        active: true,
-        ..conn
+    Ok(Database {
+        id,
+        client: Arc::new(Mutex::new(Some(client))),
     })
 }
 
-pub async fn stop_client(conn: Connection) -> Result<Connection, Error> {
-    Ok(Connection {
-        client: std::sync::Arc::new(std::sync::Mutex::new(None)),
-        active: false,
-        ..conn
+async fn connect_ssl(url: String, id: u8) -> Result<Database, Error> {
+    let connector = MakeTlsConnector::new(TlsConnector::new().unwrap());
+    let (client, connection) = tokio_postgres::connect(url.as_str(), connector).await?;
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
+    Ok(Database {
+        id,
+        client: Arc::new(Mutex::new(Some(client))),
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub async fn exec(input: String, db: Database) -> Result<String, Error> {
+    println!("exec: {:?}", input);
+    let client = db.client.lock().unwrap().take().unwrap();
+    let rows = client.query("SELECT $1::TEXT", &[&"hello world"]).await?;
+    let value: String = rows[0].get(0);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    Ok(value)
 }

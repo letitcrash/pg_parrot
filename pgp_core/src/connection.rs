@@ -24,7 +24,7 @@ pub struct Connection {
     pub sslmode: Option<String>,
     pub active: bool,
     pub timeout: u16,
-    pub client: Arc<Mutex<Option<Client>>>,
+    // pub client: Arc<Mutex<Option<Client>>>,
 }
 
 impl Connection {
@@ -106,7 +106,7 @@ impl<'de> Deserialize<'de> for Connection {
                 sslmode,
                 active,
                 timeout: DEFAULT_CONNECT_TIMEOUT,
-                client: Arc::new(Mutex::new(None)),
+                // client: Arc::new(Mutex::new(None)),
             })
         } else {
             let username = map
@@ -153,7 +153,7 @@ impl<'de> Deserialize<'de> for Connection {
                 sslmode,
                 active,
                 timeout,
-                client: Arc::new(Mutex::new(None)),
+                // client: Arc::new(Mutex::new(None)),
             })
         }
     }

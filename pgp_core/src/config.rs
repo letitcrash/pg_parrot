@@ -59,14 +59,14 @@ impl Config {
     //     })
     // }
 
-    // pub fn set_connection_active(&self, active: bool) -> Self {
-    //     let mut connections = self.connections.as_ref().unwrap().clone();
-    //     let index = connections.iter().position(|c| c.id == id).unwrap();
-    //     connections[index].active = active;
+    pub fn set_connection_active(&self, id: u8, active: bool) -> Self {
+        let mut connections = self.connections.as_ref().unwrap().clone();
+        let index = connections.iter().position(|c| c.id == id).unwrap();
+        connections[index].active = active;
 
-    //     Self {
-    //         connections: Some(connections),
-    //         ..self.clone()
-    //     }
-    // }
+        Self {
+            connections: Some(connections),
+            ..self.clone()
+        }
+    }
 }
