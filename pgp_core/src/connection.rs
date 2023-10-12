@@ -22,39 +22,12 @@ pub struct Connection {
     pub port: u16,
     pub database: String,
     pub sslmode: Option<String>,
-    pub active: bool,
+    pub cert: Option<String>,
     pub timeout: u16,
     // pub client: Arc<Mutex<Option<Client>>>,
 }
 
 impl Connection {
-    // pub async fn client(&self) -> Result<Self, Error> {
-    //     let (client, connection) = tokio_postgres::connect(
-    //         "postgres://test_user:secret_password@localhost/test_database",
-    //         NoTls,
-    //     )
-    //     .await?;
-
-    //     tokio::spawn(async move {
-    //         if let Err(e) = connection.await {
-    //             eprintln!("connection error: {}", e);
-    //         }
-    //     });
-
-    //     Ok(Connection {
-    //         id: self.id,
-    //         username: self.username.clone(),
-    //         password: self.password.clone(),
-    //         host: self.host.clone(),
-    //         port: self.port,
-    //         database: self.database.clone(),
-    //         sslmode: self.sslmode.clone(),
-    //         active: self.active,
-    //         timeout: self.timeout,
-    //         client: Arc::new(Mutex::new(Some(client))),
-    //     })
-    // }
-
     pub fn url(&self) -> String {
         let mut url = format!(
             "postgres://{}:{}@{}:{}/{}",
@@ -63,12 +36,9 @@ impl Connection {
 
         url.push_str(&format!("?connect_timeout={}", self.timeout));
 
-        
         if let Some(sslmode) = &self.sslmode {
             url.push_str(&format!("&sslmode={}", sslmode));
         }
-
-        print!("{}", url);
 
         url
     }
@@ -104,7 +74,7 @@ impl<'de> Deserialize<'de> for Connection {
                 port,
                 database,
                 sslmode,
-                active,
+                cert: None,
                 timeout: DEFAULT_CONNECT_TIMEOUT,
                 // client: Arc::new(Mutex::new(None)),
             })
@@ -138,7 +108,7 @@ impl<'de> Deserialize<'de> for Connection {
                 .remove("timeout")
                 .map(|v| v.as_integer().unwrap() as u16)
                 .unwrap_or(DEFAULT_CONNECT_TIMEOUT);
-            
+
             let sslmode = map
                 .remove("sslmode")
                 .map(|v| v.as_str().unwrap().to_string());
@@ -151,7 +121,7 @@ impl<'de> Deserialize<'de> for Connection {
                 port,
                 database,
                 sslmode,
-                active,
+                cert: None,
                 timeout,
                 // client: Arc::new(Mutex::new(None)),
             })

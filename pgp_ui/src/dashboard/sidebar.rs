@@ -1,9 +1,10 @@
+use std::collections::BTreeMap;
+
 use iced::widget::{self, button, column, container, row, scrollable, text, Column, PaneGrid};
 use iced::{theme, Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 
 use super::Message;
 use pgp_core::config::Config;
-use pgp_core::connection::Connection;
 
 #[derive(Debug)]
 pub struct Sidebar {
@@ -19,22 +20,25 @@ impl Sidebar {
         self.hidden = !self.hidden;
     }
 
-    pub fn view(&self, config: &Config) -> Element<Message> {
+    pub fn view(&self, config: &Config, connections_state: &BTreeMap<u8, bool>) -> Element<Message> {
         let mut column = column![].spacing(1);
+        let state: Vec<_> = connections_state.into_iter().collect();
 
-        for (name, id, active) in config.connection_names() {
-            let (title, action, style) = if active {
-                (name, Message::Disconnect(id), theme::Button::Positive)
+        for (id, active) in state {
+            let connection = config.get_connection(*id);
+            let name = connection.database.clone();
+
+            let button = if *active {
+                button(text(name))
+                    .on_press(Message::Disconnect(*id))
+                    .style(theme::Button::Positive)
             } else {
-                (name, Message::Connect(id), theme::Button::Secondary)
+                button(text(name))
+                    .on_press(Message::Connect(*id))
+                    .style(theme::Button::Secondary)
             };
 
-            let button = button(text(title))
-                .on_press(action)
-                .style(style)
-                .width(Length::Fill);
-
-            column = column.push(button);
+            column = column.push(button.width(Length::Fill));
         }
 
         container(

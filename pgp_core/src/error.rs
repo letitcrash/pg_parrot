@@ -32,6 +32,14 @@ impl From<tokio_postgres::Error> for Error {
     }
 }
 
+impl From<native_tls::Error> for Error {
+    fn from(error: native_tls::Error) -> Error {
+        dbg!(error);
+
+        Error::ConnectionError
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         dbg!(self);

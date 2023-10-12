@@ -52,7 +52,7 @@ impl Application for PgParrot {
 
     fn title(&self) -> String {
         let subtitle = match self {
-            PgParrot::Ready { .. } => "Dashboard",
+            PgParrot::Ready { dashboard, .. } => dashboard.title(),
             PgParrot::Errored { .. } => "Whoops!",
             _ => "Loading",
         };

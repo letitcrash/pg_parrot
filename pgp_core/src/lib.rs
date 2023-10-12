@@ -1,11 +1,10 @@
 use error::Error;
-use native_tls::TlsConnector;
-use postgres_native_tls::{MakeTlsConnector, TlsStream};
+use native_tls::{Certificate, TlsConnector};
+use postgres_native_tls::MakeTlsConnector;
 use std::sync::{Arc, Mutex};
-use tokio_postgres::{
-    tls::{NoTlsFuture, NoTlsStream},
-    Client, NoTls, Socket,
-};
+use tokio_postgres::{Client, NoTls};
+
+use std::fs;
 
 pub mod config;
 pub mod connection;
@@ -31,6 +30,7 @@ pub async fn client(conn: connection::Connection) -> Result<Database, Error> {
 }
 
 async fn connect(url: String, id: u8) -> Result<Database, Error> {
+    println!("connect: {:?}", url);
     let (client, connection) = tokio_postgres::connect(url.as_str(), NoTls).await?;
     tokio::spawn(async move {
         if let Err(e) = connection.await {
@@ -45,8 +45,13 @@ async fn connect(url: String, id: u8) -> Result<Database, Error> {
 }
 
 async fn connect_ssl(url: String, id: u8) -> Result<Database, Error> {
-    let connector = MakeTlsConnector::new(TlsConnector::new().unwrap());
+    println!("connect_ssl: {:?}", url);
+    let cert = fs::read("ca-certificate.crt")?;
+    let cert = Certificate::from_pem(&cert)?;
+    let connector = TlsConnector::builder().add_root_certificate(cert).build()?;
+    let connector = MakeTlsConnector::new(connector);
     let (client, connection) = tokio_postgres::connect(url.as_str(), connector).await?;
+
     tokio::spawn(async move {
         if let Err(e) = connection.await {
             eprintln!("connection error: {}", e);
@@ -62,7 +67,7 @@ async fn connect_ssl(url: String, id: u8) -> Result<Database, Error> {
 pub async fn exec(input: String, db: Database) -> Result<String, Error> {
     println!("exec: {:?}", input);
     let client = db.client.lock().unwrap().take().unwrap();
-    let rows = client.query("SELECT $1::TEXT", &[&"hello world"]).await?;
+    let rows = client.query(input.as_str(), &[]).await?;
     let value: String = rows[0].get(0);
 
     Ok(value)

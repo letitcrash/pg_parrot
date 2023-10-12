@@ -1,5 +1,7 @@
 mod sidebar;
 mod viewport;
+use std::collections::BTreeMap;
+
 use iced::theme::palette::Danger;
 use iced::widget::{self, button, column, container, row, text, Column, PaneGrid};
 use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
@@ -11,9 +13,10 @@ use viewport::Viewport;
 
 #[derive(Debug)]
 pub struct Dashboard {
-    config: Config,
     sidebar: sidebar::Sidebar,
     viewport: Viewport,
+    connections_state: BTreeMap<u8, bool>,
+    config: Config,
 }
 
 #[derive(Debug, Clone)]
@@ -29,25 +32,36 @@ impl Dashboard {
         Self {
             sidebar: sidebar::Sidebar::new(),
             viewport: Viewport::default(),
+            connections_state: config.default_state(),
             config,
+        }
+    }
+
+    pub fn title(&self) -> &str {
+        match &self.viewport {
+            Viewport::Ready { db, .. } => self.config.get_connection(db.id).database.as_str(),
+            Viewport::Loading { .. } => "Loading",
+            _ => "Dashboard",
         }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Connect(id) => {
+                self.connections_state = self.config.default_state();
+
                 let connection = self.config.get_connection(id).clone();
                 let name = connection.database.clone();
                 self.viewport = Viewport::Loading { name, message };
                 Command::perform(pgp_core::client(connection), Message::Connected)
             }
             Message::Disconnect(id) => {
-                self.config = self.config.set_connection_active(id, false);
+                self.connections_state.insert(id, false);
                 self.viewport = Viewport::default();
                 Command::none()
             }
             Message::Connected(Ok(db)) => {
-                self.config = self.config.set_connection_active(db.id, true);
+                self.connections_state.insert(db.id, true);
                 self.viewport = Viewport::new(db);
 
                 Command::none()
@@ -62,7 +76,7 @@ impl Dashboard {
 
     pub fn view(&self) -> Element<Message> {
         let height_margin = if cfg!(target_os = "macos") { 20 } else { 0 };
-        let sidebar = self.sidebar.view(&self.config);
+        let sidebar = self.sidebar.view(&self.config, &self.connections_state);
         let viewport = self.viewport.view(&self.config).map(Message::Viewppoort);
         let base = row![].push(sidebar).push(viewport);
 
