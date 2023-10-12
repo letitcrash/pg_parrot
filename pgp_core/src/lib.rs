@@ -69,6 +69,7 @@ pub async fn exec(input: String, db: Database) -> Result<String, Error> {
     let client = db.client.lock().unwrap().take().unwrap();
     let rows = client.query(input.as_str(), &[]).await?;
     let value: String = rows[0].get(0);
+    *db.client.lock().unwrap() = Some(client);
 
     Ok(value)
 }
