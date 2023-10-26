@@ -8,7 +8,7 @@ use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Th
 use pgp_core::config::Config;
 use pgp_core::connection::{self, Connection};
 use pgp_core::error::Error;
-use pgp_core::Database;
+use pgp_core::Session;
 use viewport::Viewport;
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ pub struct Dashboard {
 pub enum Message {
     Connect(u8),
     Disconnect(u8),
-    Connected(Result<Database, Error>),
+    Connected(Result<Session, Error>),
     Viewppoort(viewport::Message),
 }
 
@@ -33,13 +33,14 @@ impl Dashboard {
             sidebar: sidebar::Sidebar::new(),
             viewport: Viewport::default(),
             connections_state: config.default_state(),
+            // session: None,
             config,
         }
     }
 
     pub fn title(&self) -> &str {
         match &self.viewport {
-            Viewport::Ready { db, .. } => self.config.get_connection(db.id).database.as_str(),
+            // Viewport::Ready { session, .. } => self.config.get_connection(db.id).database.as_str(),
             Viewport::Loading { .. } => "Loading",
             _ => "Dashboard",
         }
@@ -53,16 +54,16 @@ impl Dashboard {
                 let connection = self.config.get_connection(id).clone();
                 let name = connection.database.clone();
                 self.viewport = Viewport::Loading { name, message };
-                Command::perform(pgp_core::client(connection), Message::Connected)
+                Command::perform(pgp_core::init_session(id, self.config.clone()), Message::Connected)
             }
             Message::Disconnect(id) => {
                 self.connections_state.insert(id, false);
                 self.viewport = Viewport::default();
                 Command::none()
             }
-            Message::Connected(Ok(db)) => {
-                self.connections_state.insert(db.id, true);
-                self.viewport = Viewport::new(db);
+            Message::Connected(Ok(session)) => {
+                self.connections_state.insert(session.connection_id, true);
+                self.viewport = Viewport::new(session);
 
                 Command::none()
             }

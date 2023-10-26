@@ -10,7 +10,7 @@ use iced::{theme, Alignment, Application, Color, Command, Element, Length, Setti
 use super::Error;
 // use super::Message;
 use pgp_core::config::{self, Config};
-use pgp_core::Database;
+use pgp_core::Session;
 
 #[derive(Debug)]
 pub enum Viewport {
@@ -24,8 +24,7 @@ pub enum Viewport {
     },
     Ready {
         input: String,
-        output: Vec<String>,
-        db: Database,
+        session: Session,
     },
 }
 
@@ -33,7 +32,7 @@ pub enum Viewport {
 pub enum Message {
     InputChanged(String),
     Query,
-    QueryComplete(Result<String, Error>),
+    QueryComplete(Result<Session, Error>),
 }
 
 impl Viewport {
@@ -41,11 +40,10 @@ impl Viewport {
         Self::Default("Select a connection".to_string())
     }
 
-    pub fn new(db: Database) -> Self {
+    pub fn new(session: Session) -> Self {
         Self::Ready {
             input: String::new(),
-            output: vec![],
-            db,
+            session,
         }
     }
 
@@ -58,17 +56,16 @@ impl Viewport {
                 Command::none()
             }
             Message::Query => {
-                if let Viewport::Ready { input, db, .. } = self {
+                if let Viewport::Ready { input, session, .. } = self {
                     return Command::perform(
-                        pgp_core::exec(input.to_string(), db.clone()),
+                        pgp_core::exec(input.clone(), session.clone()),
                         Message::QueryComplete,
                     );
                 }
                 Command::none()
             }
-            Message::QueryComplete(Ok(result)) => {
-                println!("Result: {:?}", result);
-
+            Message::QueryComplete(Ok(session)) => {
+                *self = Viewport::new(session);
                 Command::none()
             }
             Message::QueryComplete(Err(error)) => {
@@ -143,7 +140,7 @@ impl Viewport {
                 .into()
             }
 
-            Viewport::Ready { input, .. } => {
+            Viewport::Ready { input, session, .. } => {
                 // let mut column = column![].spacing(1);
 
                 let text_input = text_input("Type something...", &input)
@@ -156,8 +153,16 @@ impl Viewport {
 
                 let chat = column![].width(Length::Fill).spacing(1);
 
-                // chat.push("Hello");
-                // chat.push("World");
+                let chat = session
+                    .messages
+                    .iter()
+                    .fold(chat, |chat, msg| match msg.content {
+                        Some(ref content) => {
+                            let msg_content = msg.role.to_string() + ": " + content;
+                            chat.push(text(msg_content).size(18).width(Length::Fill))
+                        }
+                        None => chat,
+                    });
 
                 let scrollable = scrollable(chat)
                     .direction(scrollable::Direction::Vertical(

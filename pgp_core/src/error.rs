@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::openai;
+
 #[derive(Debug, Clone)]
 pub enum Error {
     NotFound,
@@ -37,6 +39,14 @@ impl From<native_tls::Error> for Error {
         dbg!(error);
 
         Error::ConnectionError
+    }
+}
+
+impl From<async_openai::error::OpenAIError> for Error {
+    fn from(error: async_openai::error::OpenAIError) -> Error {
+        dbg!(error);
+
+        Error::QueryError
     }
 }
 
