@@ -6,7 +6,7 @@ use async_openai::{
     },
     Client as OpenAIClient,
 };
-use error::Error;
+use errors::Error;
 use native_tls::{Certificate, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use std::sync::{Arc, Mutex};
@@ -17,7 +17,7 @@ use std::fs;
 
 pub mod config;
 pub mod connection;
-pub mod error;
+pub mod errors;
 pub mod openai;
 
 #[derive(Debug, Clone)]

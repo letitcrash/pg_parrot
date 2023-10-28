@@ -7,7 +7,7 @@ use iced::widget::{self, button, column, container, row, text, Column, PaneGrid}
 use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
 use pgp_core::config::Config;
 use pgp_core::connection::{self, Connection};
-use pgp_core::error::Error;
+use pgp_core::errors::Error;
 use pgp_core::Session;
 use viewport::Viewport;
 

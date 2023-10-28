@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, sync::PoisonError};
 
 use crate::openai;
 
@@ -47,6 +47,14 @@ impl From<async_openai::error::OpenAIError> for Error {
         dbg!(error);
 
         Error::QueryError
+    }
+}
+
+impl From<PoisonError<std::sync::MutexGuard<'_, tokio_postgres::Client>>> for Error {
+    fn from(error: PoisonError<std::sync::MutexGuard<'_, tokio_postgres::Client>>) -> Error {
+        dbg!(error);
+
+        Error::ConnectionError
     }
 }
 

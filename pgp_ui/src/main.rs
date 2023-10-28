@@ -9,7 +9,7 @@ use iced::window;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
 
 use pgp_core::config::Config;
-use pgp_core::error::Error;
+use pgp_core::errors::Error;
 
 #[tokio::main]
 async fn main() -> iced::Result {

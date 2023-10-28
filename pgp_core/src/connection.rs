@@ -1,13 +1,9 @@
 use serde::Deserialize;
 use serde::Deserializer;
-use tokio_postgres::NoTls;
 use url::Url;
 
-use crate::error::Error;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Arc, Mutex};
-use tokio_postgres::Client;
 
 const PG_DEFAULT_PORT: u16 = 5432;
 const DEFAULT_CONNECT_TIMEOUT: u16 = 5;

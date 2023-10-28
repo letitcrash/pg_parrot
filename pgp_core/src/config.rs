@@ -1,10 +1,9 @@
 use crate::connection::Connection;
-use crate::error::Error;
+use crate::errors::Error;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenAI {

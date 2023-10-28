@@ -1,6 +1,6 @@
 use iced::widget::{self, button, column, container, row, text, Column};
 use iced::{Alignment, Application, Color, Command, Element, Length, Settings, Theme};
-use pgp_core::error::Error;
+use pgp_core::errors::Error;
 use crate::Message;
 
 pub trait ErrorExt {
